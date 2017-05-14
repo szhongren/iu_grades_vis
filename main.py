@@ -53,42 +53,47 @@ def read_table(directory, term_name):
         for row in table:
             print(row)
 
-def handle_name(name_col):
-    if name_col == 'INSTRUCTOR NAME':
-        return 'LAST NAME","FIRST NAME","MIDDLE NAME'
-    elif name_col == '"':
-        return '","","'
-    elif ',' in name_col[1:]:
+def handle_name(row):
+    pos = 9
+    col = row[pos]
+    if col == 'INSTRUCTOR NAME':
+        row[pos] = 'LAST NAME,FIRST NAME,MIDDLE NAME'
+    elif ',' in col:
         names = []
-        parts = name_col.split(',')
-        names.append(parts[0])
+        parts = col.split(',')
         i = parts[1].find(' ')
-        names.append(parts[1][:i])
-        names.append(parts[1][i + 1:])
-        return '","'.join(names)
+        names.append(parts[0])
+        if i == -1:
+            names.append(parts[1])
+            names.append('')
+        else:
+            names.append(parts[1][:i])
+            names.append(parts[1][i + 1:])
+        row[pos] = ','.join(names)
     else:
         names = []
-        names.append(name_col[:-1])
-        names.append(name_col[-1:])
+        names.append(col[:-1])
+        names.append(col[-1:])
         names.append('')
-        return '","'.join(names)
+        row[pos] = ','.join(names)
+
+def handle_class(row):
+    subj, course = 5, 6
+    if row[subj] == 'SUBJECT' and row[course] == 'COURSE':
+        return
+    else:
+        if row[course][0].isdigit():
+            return
+        row[subj] += '-' + row[course][0]
+        row[course] = row[course][1:]
 
 def handle_line(line):
-    count_quotes = 0
-    i = 0
-    while count_quotes < 19:
-        if line[i] == '"':
-            count_quotes += 1
-        i += 1
-    new_i = i
-    while count_quotes < 20:
-        if line[new_i] == '"':
-            count_quotes += 1
-        new_i += 1
-    return line[:i].upper() + handle_name(line[i:new_i - 1].upper()) + line[new_i - 1:].upper()
-    # return '"' + handle_name(line[i:new_i - 1].upper()) + line[new_i - 1:].upper()
+    row = line.split('","')
+    handle_class(row)
+    handle_name(row)
+    return ','.join(row).upper()[1:-3] + '\n'
 
-def merge_tables(directory, out_file):
+def merge_and_normalize_tables(directory, out_file):
     with open(out_file, 'w') as handle:
         for (i, table) in enumerate(os.listdir(directory)):
             for (j, line) in enumerate(open(os.path.join(directory, table), 'r')):
@@ -106,5 +111,5 @@ def print_headers(directory, out_file):
 if __name__ == "__main__":
     # download_all_term_tables()
     # readTable(os.path.join("data", "orig"), "2016 Fall")
-    merge_tables(os.path.join("data", "orig"), "merged.csv")
+    merge_and_normalize_tables(os.path.join("data", "orig"), "merged.csv")
     # printHeaders(os.path.join("data", "orig"), "headers.csv")
